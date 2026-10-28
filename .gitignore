@@ -1,0 +1,5 @@
+.godot/
+dist/
+node_modules/
+.manus-logs/
+puttbound.apk

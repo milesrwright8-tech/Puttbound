@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="manus-game-loading-screen" content="1">
+  <title>$GODOT_PROJECT_NAME</title>
+  $GODOT_HEAD_INCLUDE
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #071326; color: #e9f4ff; overflow: hidden; }
+    body { display: grid; place-items: center; }
+    #canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; outline: none; }
+    #loading { position: relative; width: min(620px, calc(100vw - 48px)); padding: 44px 48px 38px; border: 1px solid #3e6794; border-radius: 28px; background: linear-gradient(145deg, #152d4d, #0d1a34); box-shadow: 0 22px 70px #020816aa; text-align: center; }
+    #mark { width: 94px; height: 94px; margin: 0 auto 20px; border-radius: 50%; background: #f8d66d; box-shadow: 0 0 42px #f8d66d88; position: relative; }
+    #mark::after { content: ''; position: absolute; width: 30px; height: 30px; border-radius: 50%; background: white; left: 44px; top: 42px; box-shadow: 0 0 16px white; }
+    h1 { margin: 0; letter-spacing: .13em; font-size: clamp(32px, 7vw, 56px); color: #f8d66d; }
+    #sub { margin: 8px 0 26px; color: #7fe2ec; letter-spacing: .22em; font-size: 13px; font-weight: 700; }
+    #loading-status { color: #d3e7fc; margin: 0 0 13px; }
+    progress { width: 100%; height: 12px; accent-color: #f8d66d; }
+    #loading-notice { color: #f7c8a0; font-size: 13px; }
+    button { border: 1px solid #f8d66d; border-radius: 12px; background: #25466f; color: white; padding: 12px 24px; cursor: pointer; font-weight: 700; }
+    button:hover { background: #35649a; }
+    noscript { display: block; margin-top: 18px; color: #ffb2a8; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" tabindex="0">Your browser does not support canvas.</canvas>
+  <section id="loading" role="status" aria-live="polite">
+    <div id="mark" aria-hidden="true"></div>
+    <h1>PUTTBOUND</h1>
+    <div id="sub">WORLDS IN MOTION</div>
+    <p id="loading-status">Loading your next line…</p>
+    <progress id="loading-progress" aria-label="Loading progress"></progress>
+    <p id="loading-notice" hidden></p>
+    <button id="loading-retry" type="button" hidden>Retry</button>
+    <noscript>JavaScript is required to play the Web preview.</noscript>
+  </section>
+  <script>
+    (() => {
+      const config = $GODOT_CONFIG;
+      const threads = $GODOT_THREADS_ENABLED;
+      const canvas = document.getElementById('canvas');
+      const loading = document.getElementById('loading');
+      const status = document.getElementById('loading-status');
+      const progress = document.getElementById('loading-progress');
+      const notice = document.getElementById('loading-notice');
+      const retry = document.getElementById('loading-retry');
+      let failed = false, ready = false, lastProgress = performance.now(), downloaded = 0;
+      retry.addEventListener('click', () => window.location.reload());
+      const fail = (error) => {
+        if (failed || ready) return;
+        failed = true;
+        console.error('[puttbound-loading] startup failed', error);
+        status.textContent = 'Unable to load the game. Please retry.';
+        progress.hidden = true; notice.hidden = true; retry.hidden = false;
+      };
+      window.addEventListener('error', (event) => fail(event.error || new Error('startup error')));
+      window.addEventListener('unhandledrejection', (event) => fail(event.reason || new Error('startup rejection')));
+      const onProgress = (current, total) => {
+        if (failed || ready) return;
+        if (Number.isFinite(current) && current > downloaded) { downloaded = current; lastProgress = performance.now(); }
+        if (Number.isFinite(total) && total > 0) { progress.max = total; progress.value = Math.min(current, total); status.textContent = current >= total ? 'Starting game…' : `${Math.floor(current / total * 100)}%`; }
+      };
+      const start = async () => {
+        try {
+          const missing = Engine.getMissingFeatures({ threads });
+          if (missing.length) throw new Error(`Missing browser features: ${missing.join(', ')}`);
+          const engine = new Engine({ ...config, canvas });
+          await engine.startGame({ onProgress });
+          if (failed) return;
+          ready = true;
+          requestAnimationFrame(() => requestAnimationFrame(() => { loading.hidden = true; if (config['focusCanvas']) canvas.focus(); }));
+        } catch (error) { fail(error); }
+      };
+      setInterval(() => { if (!failed && !ready && performance.now() - lastProgress > 30000) { notice.hidden = false; retry.hidden = false; notice.textContent = 'Loading is taking longer than expected. You can keep waiting or retry.'; } }, 1000);
+      const script = document.createElement('script');
+      script.src = '$GODOT_URL';
+      script.addEventListener('load', start, { once: true });
+      script.addEventListener('error', () => fail(new Error('engine script unavailable')), { once: true });
+      document.head.appendChild(script);
+    })();
+  </script>
+</body>
+</html>

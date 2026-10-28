@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "kind": "script",
+      "path": "res://test/world_3d_check.gd",
+      "expect": "[puttbound] PASS"
+    }
+  ]
+}

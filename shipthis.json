@@ -1,0 +1,34 @@
+{
+  "globs": {
+    "base": {
+      "include": ["**/*"],
+      "exclude": [
+        ".git/**",
+        ".godot/**",
+        ".manus-artifacts.json",
+        "dist/**",
+        "site/**",
+        "captures/**",
+        "test-output/**",
+        "*.zip",
+        "node_modules/**"
+      ]
+    },
+    "android": {
+      "exclude": [
+        "web/**",
+        "*.html",
+        "*.wasm",
+        "*.pck"
+      ]
+    },
+    "ios": {
+      "exclude": [
+        "android/**",
+        "*.apk",
+        "*.aab",
+        ".gradle/**"
+      ]
+    }
+  }
+}
